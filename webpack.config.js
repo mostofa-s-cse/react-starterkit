@@ -6,19 +6,19 @@ module.exports = (env, argv) => {
   const isProduction = argv.mode === 'production';
 
   return {
-    entry: './src/index.tsx',
+    entry: './src/index.jsx',
     output: {
       path: path.resolve(__dirname, 'dist'),
       filename: isProduction ? '[name].[contenthash].js' : '[name].js',
       clean: true,
     },
     resolve: {
-      extensions: ['.tsx', '.ts', '.js', '.jsx'],
+      extensions: ['.js', '.jsx'],
     },
     module: {
       rules: [
         {
-          test: /\.(ts|tsx)$/,
+          test: /\.(js|jsx)$/,
           use: 'babel-loader',
           exclude: /node_modules/,
         },
@@ -40,9 +40,13 @@ module.exports = (env, argv) => {
       new HtmlWebpackPlugin({
         template: './public/index.html',
       }),
-      ...(isProduction ? [new MiniCssExtractPlugin({
-        filename: '[name].[contenthash].css',
-      })] : []),
+      ...(isProduction
+        ? [
+            new MiniCssExtractPlugin({
+              filename: '[name].[contenthash].css',
+            }),
+          ]
+        : []),
     ],
     devServer: {
       static: {
