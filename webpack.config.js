@@ -40,9 +40,13 @@ module.exports = (env, argv) => {
       new HtmlWebpackPlugin({
         template: './public/index.html',
       }),
-      ...(isProduction ? [new MiniCssExtractPlugin({
-        filename: '[name].[contenthash].css',
-      })] : []),
+      ...(isProduction
+        ? [
+            new MiniCssExtractPlugin({
+              filename: '[name].[contenthash].css',
+            }),
+          ]
+        : []),
     ],
     devServer: {
       static: {
