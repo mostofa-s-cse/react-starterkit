@@ -1,5 +1,7 @@
 import Counter from './components/Counter';
 import Layout from './components/Layout';
+import Post from './components/Post';
+import UserData from './components/UserData';
 
 const App = () => {
   return (
@@ -15,6 +17,8 @@ const App = () => {
             </p>
           </header>
           <Counter />
+          <UserData />
+          <Post />
         </div>
       </div>
     </Layout>
