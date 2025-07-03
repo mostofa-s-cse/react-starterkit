@@ -10,7 +10,6 @@ interface Post {
 
 export default function UserData() {
   const [data, setData] = useState<Post[]>([]);
-  const [filteredData, setFilteredData] = useState<Post[]>([]);
   const [pageLimit, setPageLimit] = useState<number>(10);
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [sortBy, setSortBy] = useState<string>('id');
@@ -81,8 +80,6 @@ export default function UserData() {
         setTotalItems(0);
         setTotalPages(0);
       }
-
-      setFilteredData([]);
     } catch (error: any) {
       console.error('Unexpected error:', error);
       // Set empty data on error
