@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react';
 import { publicApi } from '../services/apis';
 
-export default function Post() {
+export default function PostComponent() {
   const [post, setPost] = useState([]);
-  console.log('post:', post);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -11,11 +10,10 @@ export default function Post() {
     setLoading(true);
     setError(null);
     try {
-      const response = await publicApi.get('/posts?_limit=10'); // Fetch a single post
+      const response = await publicApi.get('/posts?_limit=10');
       setPost(response.data);
-      setLoading(false);
     } catch (err) {
-      setError(err.message || 'Failed to load post');
+      setError(err?.message || 'Failed to load post');
     } finally {
       setLoading(false);
     }
@@ -44,7 +42,7 @@ export default function Post() {
         <h3 className='text-red-800 font-semibold mb-2'>Error loading post</h3>
         <p className='text-red-600'>{error}</p>
         <button
-          onClick={() => fetchPost()}
+          onClick={fetchPost}
           className='mt-4 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded transition duration-200'
         >
           Try Again
@@ -54,7 +52,8 @@ export default function Post() {
   }
 
   return (
-    <div className='max-w-md mx-auto bg-white rounded-lg shadow-lg p-6 mt-8'>
+    <div className='max-w-xxl mx-auto bg-white rounded-lg shadow-lg p-6 mt-8'>
+      <h2 className='text-center text-xl font-semibold mb-4'>Posts</h2>
       {post.map((item) => (
         <div key={item.id} className='mb-6'>
           <h2 className='text-2xl font-bold text-gray-800 mb-2'>
