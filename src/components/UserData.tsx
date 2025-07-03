@@ -1,4 +1,5 @@
 import { ChangeEvent, useEffect, useState } from 'react';
+import { apiHelpers } from '../services/apis';
 
 // ✅ Define the shape of each post item
 interface Post {
@@ -12,6 +13,8 @@ export default function UserData() {
   const [filteredData, setFilteredData] = useState<Post[]>([]);
   const [pageLimit, setPageLimit] = useState<number>(10);
   const [searchTerm, setSearchTerm] = useState<string>('');
+  const [sortBy, setSortBy] = useState<string>('id');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
   // ✅ Pagination state
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -19,7 +22,7 @@ export default function UserData() {
   const [totalItems, setTotalItems] = useState<number>(100); // JSONPlaceholder has 100 posts total
   const [loading, setLoading] = useState<boolean>(false);
 
-  // ✅ Fetch data with server-side pagination and search
+  // ✅ Fetch data with server-side pagination and search using API service
   const fetchData = async (
     page: number = 1,
     limit: number = 10,
@@ -27,58 +30,61 @@ export default function UserData() {
   ) => {
     setLoading(true);
     try {
-      // Build the API URL with pagination parameters
-      let url = `https://jsonplaceholder.typicode.com/posts?_page=${page}&_limit=${limit}`;
+      console.log('Fetching with params:', { page, limit, search });
 
-      // Add search parameters if search term exists
-      if (search.trim()) {
-        // JSONPlaceholder supports q parameter for search
-        url += `&q=${encodeURIComponent(search.trim())}`;
+      // Use the apiHelpers service for cleaner API calls
+      const result = await apiHelpers.getPosts({
+        page,
+        limit,
+        search,
+        sortBy,
+        sortOrder,
+      });
 
-        // Alternative: You can also use title_like or body_like for specific field search
-        // url = `https://jsonplaceholder.typicode.com/posts?title_like=${encodeURIComponent(search)}&_page=${page}&_limit=${limit}`;
-      }
+      if (result.success) {
+        const jsonData: Post[] = result.data;
 
-      console.log('Fetching from URL:', url);
+        // For demonstration with JSONPlaceholder's limited search,
+        // we'll simulate server-side search behavior
+        if (search.trim()) {
+          // Since JSONPlaceholder's search is limited, we'll filter server results
+          const filteredData = jsonData.filter(
+            (item) =>
+              item.title.toLowerCase().includes(search.toLowerCase()) ||
+              item.body.toLowerCase().includes(search.toLowerCase())
+          );
 
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error('Network response was not ok');
-      }
+          setData(filteredData);
+          // For real APIs, you'd get total count from response headers or separate endpoint
+          setTotalItems(filteredData.length);
+          setTotalPages(Math.ceil(filteredData.length / limit));
+        } else {
+          setData(jsonData);
+          setTotalItems(result.total); // Use total from API response
+          setTotalPages(Math.ceil(result.total / limit));
+        }
 
-      const jsonData: Post[] = await response.json();
-
-      // For demonstration with JSONPlaceholder's limited search,
-      // we'll simulate server-side search behavior
-      if (search.trim()) {
-        // Since JSONPlaceholder's search is limited, we'll filter server results
-        const filteredData = jsonData.filter(
-          (item) =>
-            item.title.toLowerCase().includes(search.toLowerCase()) ||
-            item.body.toLowerCase().includes(search.toLowerCase())
+        console.log(
+          'Fetched data for page:',
+          page,
+          'limit:',
+          limit,
+          'search:',
+          search,
+          'items:',
+          jsonData.length
         );
-
-        setData(filteredData);
-        // For real APIs, you'd get total count from response headers or separate endpoint
-        setTotalItems(filteredData.length);
-        setTotalPages(Math.ceil(filteredData.length / limit));
       } else {
-        setData(jsonData);
-        setTotalItems(100); // JSONPlaceholder has 100 posts total
-        setTotalPages(Math.ceil(100 / limit));
+        // Handle API error
+        console.error('API Error:', result.error);
+        setData([]);
+        setTotalItems(0);
+        setTotalPages(0);
       }
 
       setFilteredData([]);
-      console.log(
-        'Fetched data for page:',
-        page,
-        'limit:',
-        limit,
-        'search:',
-        search
-      );
-    } catch (error) {
-      console.error('Error fetching data:', error);
+    } catch (error: any) {
+      console.error('Unexpected error:', error);
       // Set empty data on error
       setData([]);
       setTotalItems(0);
@@ -88,12 +94,12 @@ export default function UserData() {
     }
   };
 
-  // ✅ Fetch data when page or pageLimit changes (not searchTerm directly)
+  // ✅ Fetch data when page, pageLimit, or sorting changes (not searchTerm directly)
   useEffect(() => {
     if (!searchTerm) {
       fetchData(currentPage, pageLimit, searchTerm);
     }
-  }, [currentPage, pageLimit]);
+  }, [currentPage, pageLimit, sortBy, sortOrder]);
 
   // ✅ Debounced search effect
   useEffect(() => {
@@ -105,7 +111,7 @@ export default function UserData() {
     }, 500); // 500ms delay for debouncing
 
     return () => clearTimeout(delayedSearch);
-  }, [searchTerm, pageLimit]);
+  }, [searchTerm, pageLimit, sortBy, sortOrder]);
 
   // ✅ Initial data fetch
   useEffect(() => {
@@ -124,6 +130,13 @@ export default function UserData() {
     const term = e.target.value;
     setSearchTerm(term);
     // Page reset is handled in useEffect for search
+  };
+
+  // ✅ Handle sorting change
+  const handleSortChange = (e: ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value;
+    setSortBy(value);
+    setCurrentPage(1); // Reset to first page when changing sort
   };
 
   // ✅ Pagination handlers
@@ -164,16 +177,29 @@ export default function UserData() {
       <h2 className='text-center text-xl font-semibold mb-4'>DataTable</h2>
 
       <div className='flex flex-wrap justify-between items-center mb-4 gap-4'>
-        {/* Sorting Dropdown (placeholder for now) */}
+        {/* Sorting Dropdown */}
         <div>
-          <label htmlFor='shorting' className='mr-2'>
+          <label htmlFor='sorting' className='mr-2'>
             Sort by:
           </label>
-          <select id='shorting' className='border rounded p-1'>
+          <select
+            id='sorting'
+            className='border rounded p-1'
+            value={sortBy}
+            onChange={handleSortChange}
+          >
             <option value='id'>ID</option>
             <option value='title'>Title</option>
             <option value='body'>Body</option>
+            <option value='userId'>User ID</option>
           </select>
+          <button
+            onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+            className='ml-2 px-2 py-1 text-xs bg-gray-200 hover:bg-gray-300 rounded'
+            title={`Currently: ${sortOrder.toUpperCase()}`}
+          >
+            {sortOrder === 'asc' ? '↑' : '↓'}
+          </button>
         </div>
 
         {/* Search Input */}
